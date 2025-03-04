@@ -1,0 +1,11 @@
+redis:
+  instance_name: "my-redis-instance"
+  engine_version: "6.2"
+  instance_type: "redis.micro"
+  memory_size: 0.25  # 尝试使用 0.25 GB
+  availability_zone: "ap-guangzhou-2"
+  password: "your-password"
+  security_group_name: "web accessibility"  # 使用安全组名称
+  tags:
+    Environment: "Production"
+    Project: "MyProject"
