@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# 对任意 YAML 字段进行覆写
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: lyzhang1999/vote:env
+    target:
+      kind: Deployment
+      name: vote
+
+helmCharts:
+  - name: redis
+    version: "17.16.0"
+    repo: "https://charts.bitnami.com/bitnami"
+    valuesInline:
+      fullnameOverride: redis
+      auth:
+        enabled: false
+  - name: postgresql-ha
+    version: "11.9.0"
+    repo: "https://charts.bitnami.com/bitnami"
+    valuesInline:
+      fullnameOverride: db
+      global:
+        postgresql:
+          username: postgres
+          password: postgres
+          database: postgres
+          repmgrUsername: postgres
+          repmgrPassword: postgres
+
+# 新增 Pre-install Hook (Job)
+patchesStrategicMerge:
+  - |-
+    apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: pre-install-job
+      annotations:
+        helm.sh/hook: pre-install       # 声明为 Helm Pre-install Hook
+        helm.sh/hook-weight: "-5"      # 可选：控制执行顺序（越小越先执行）
+    spec:
+      template:
+        spec:
+          containers:
+          - name: pre-install
+            image: alpine              # 使用轻量级 Alpine Linux
+            command: ["sh", "-c"]
+            args:
+              - echo "🚀 Running Pre-install Hook..."
+              echo "This job runs BEFORE the Helm chart is installed!"
+              echo "Current time: $(date)"
+              echo "Waiting 5 seconds..."
+              sleep 5
+              echo "✅ Pre-install Job Completed!"
+          restartPolicy: Never
+      backoffLimit: 1                  # 失败重试次数
